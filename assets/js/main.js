@@ -38,10 +38,59 @@ class Drawable {
 class Player extends Drawable {
     constructor(game) {
         super(game);
-        this.size = {h: 20, w: 100};
+        this.size = {
+            h: 20,
+            w: 100
+        };
         this.position = {
             x: this.game.$zone.width() / 2 - this.size.w / 2,
-            y: this.game.$zone.height() - this.size.h};
+            y: this.game.$zone.height() - this.size.h
+        };
+        this.keys = {
+            ArrowLeft:false,
+            ArrowRight:false
+        }
+        this.speedPerFrame = 5;
+        this.bindKeyEvents();
+    }
+
+    bindKeyEvents() {
+        document.addEventListener('keydown', ev => this.changeKeyStatus(ev.code, true));
+        document.addEventListener('keyup', ev => this.changeKeyStatus(ev.code, false));
+    }
+
+    changeKeyStatus(code, value) {
+        if(code in this.keys) {
+            this.keys[code] = value;
+        }
+    }
+    isLeftBorderCollision() {
+        return this.position.x < this.speedPerFrame && !this.keys.ArrowLeft;
+    }
+    isRightBorderCollision() {
+        return this.position.x > this.game.$zone.width() - this.size.w - this.speedPerFrame && !this.keys.ArrowRight;
+    }
+    update() {
+        if (this.isLeftBorderCollision()) {
+            this.position.x = 0;
+            return;
+        }
+        if (this.isRightBorderCollision()) {
+            this.position.x = this.game.$zone.width() - this.size.w;
+            return;
+        }
+        switch (true) {
+            case this.keys.ArrowLeft:
+                this.offsets.x = -this.speedPerFrame;
+                break;
+            case this.keys.ArrowRight:
+                this.offsets.x = this.speedPerFrame;
+                break;
+            default:
+                this.offsets.x = 0;
+        }
+
+        super.update();
     }
 }
 class Game {
