@@ -26,7 +26,7 @@ class Drawable {
         this.position.y += this.offsets.y;
     }
     draw() {
-        this.$element.css( name: {
+        this.$element.css({
             left: this.position.x + 'px',
             top: this.position.y + 'px',
             width: this.size.w + 'px',
@@ -47,7 +47,7 @@ class Player extends Drawable {
 class Game {
     // Default settings of game
     constructor() {
-        this.$zona = $('#game .elements');
+        this.$zone = $('#game .elements');
         this.elements = [];
         this.player = this.generate(Player);
     }
@@ -63,7 +63,7 @@ class Game {
     }
     // Endless game's cycle
     loop() {
-        requestAnimationFrame( callback: ()=>{
+        requestAnimationFrame(()=>{
             this.updateElements();
             this.loop();
         });
