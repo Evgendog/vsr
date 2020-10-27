@@ -1,9 +1,15 @@
-// Default class for all showable objects in game
+function random(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+//базовый класс для всех отображаемых объектов в игре
 class Drawable {
     constructor(game) {
         this.game = game;
         this.$element = this.createElement();
-        this.position = {
+        this.postion = {
             x: 0,
             y: 0,
         }
@@ -15,42 +21,76 @@ class Drawable {
             x: 0,
             y: 0,
         }
+        this.speedPerFrame = 0;
     }
+
     createElement() {
         let $element = $(`<div class="element ${this.constructor.name.toLowerCase()}"></div>`);
         this.game.$zone.append($element);
         return $element;
     }
+
     update() {
-        this.position.x += this.offsets.x;
-        this.position.y += this.offsets.y;
+        this.postion.x += this.offsets.x;
+        this.postion.y += this.offsets.y;
     }
+
     draw() {
         this.$element.css({
-            left: this.position.x + 'px',
-            top: this.position.y + 'px',
+            left: this.postion.x + 'px',
+            top: this.postion.y + 'px',
             width: this.size.w + 'px',
             height: this.size.h + 'px',
         })
     }
+
+    isCollision(elements) {
+        let a = {
+            x1: this.postion.x,
+            x2: this.postion.x + this.size.w,
+            y1: this.postion.y,
+            y2: this.postion.y + this.size.h,
+        }
+        let b = {
+            x1: elements.postion.x,
+            x2: elements.postion.x + elements.size.w,
+            y1: elements.postion.y,
+            y2: elements.postion.y + elements.size.h,
+        }
+        return a.x1 < b.x2 && b.x1 < a.x2 && a.y1 < b.y2 && b.y1 < a.y2;
+    }
+
+    isLeftBorderCollision() {
+        return this.postion.x < this.speedPerFrame;
+    }
+
+    isRightBorderCollision() {
+        return this.postion.x > this.game.$zone.width() - this.size.w - this.speedPerFrame;
+    }
+
+    isTopBorderCollision() {
+        return this.postion.y < this.speedPerFrame;
+    }
 }
-// Class for player
+
+//класс для игрока
 class Player extends Drawable {
+
     constructor(game) {
         super(game);
         this.size = {
             h: 20,
             w: 100
         };
-        this.position = {
+        this.postion = {
             x: this.game.$zone.width() / 2 - this.size.w / 2,
             y: this.game.$zone.height() - this.size.h
         };
         this.keys = {
-            ArrowLeft:false,
-            ArrowRight:false
+            ArrowLeft: false,
+            ArrowRight: false
         }
-        this.speedPerFrame = 5;
+        this.speedPerFrame = 20;
         this.bindKeyEvents();
     }
 
@@ -60,25 +100,21 @@ class Player extends Drawable {
     }
 
     changeKeyStatus(code, value) {
-        if(code in this.keys) {
+        if (code in this.keys) {
             this.keys[code] = value;
         }
     }
-    isLeftBorderCollision() {
-        return this.position.x < this.speedPerFrame && !this.keys.ArrowLeft;
-    }
-    isRightBorderCollision() {
-        return this.position.x > this.game.$zone.width() - this.size.w - this.speedPerFrame && !this.keys.ArrowRight;
-    }
+
     update() {
-        if (this.isLeftBorderCollision()) {
-            this.position.x = 0;
+        if (this.isLeftBorderCollision() && this.keys.ArrowLeft ) {
+            this.postion.x = 0;
             return;
         }
-        if (this.isRightBorderCollision()) {
-            this.position.x = this.game.$zone.width() - this.size.w;
+        if (this.isRightBorderCollision() && this.keys.ArrowRight) {
+            this.postion.x = this.game.$zone.width() - this.size.w;
             return;
         }
+
         switch (true) {
             case this.keys.ArrowLeft:
                 this.offsets.x = -this.speedPerFrame;
@@ -93,31 +129,86 @@ class Player extends Drawable {
         super.update();
     }
 }
+
+class Ball extends Drawable {
+    constructor(game) {
+        super(game);
+        this.speedPerFrame = 5;
+        this.size = {
+            h: 20,
+            w: 20
+        };
+        this.postion = {
+            x: this.game.$zone.width() / 2 - this.size.w / 2,
+            y: this.speedPerFrame + 5,
+        };
+
+        this.offsets.y = this.speedPerFrame;
+    }
+
+    update() {
+        if (this.isCollision(this.game.player)) {
+            this.changeDirection();
+        }
+        if (this.isTopBorderCollision()) {
+            this.changeDirection();
+        }
+
+        if (this.isLeftBorderCollision() || this.isRightBorderCollision()) {
+            this.changeDirectionX();
+        }
+
+        super.update();
+    }
+
+    changeDirectionY() {
+        this.offsets.y *= -1;
+    }
+
+    changeDirection() {
+        if (random(0, 1)) {
+            this.changeDirectionY();
+        } else {
+            this.changeDirectionY();
+            this.offsets.x = random(-5, 5);
+        }
+    }
+
+    changeDirectionX() {
+        this.offsets.x *= -1;
+    }
+}
+
 class Game {
-    // Default settings of game
+    //Базовые настройки игры
     constructor() {
         this.$zone = $('#game .elements');
         this.elements = [];
         this.player = this.generate(Player);
+        this.ball = this.generate(Ball);
     }
-    // Generation of elements
+
+    // Генерация элемента
     generate(ClassName) {
         let element = new ClassName(this);
         this.elements.push(element);
         return element;
     }
-    // Start of the game
+
+    //старт игры
     start() {
         this.loop();
     }
-    // Endless game's cycle
+
+    //бесконечный игровой цикл
     loop() {
-        requestAnimationFrame(()=>{
+        requestAnimationFrame(() => {
             this.updateElements();
             this.loop();
         });
     }
-    // Update of all game's elements
+
+    //обновление всех игровых элементов
     updateElements() {
         this.elements.forEach(element => {
             element.update();
@@ -128,23 +219,3 @@ class Game {
 
 const game = new Game();
 game.start();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

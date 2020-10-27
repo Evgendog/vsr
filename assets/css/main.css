@@ -20,3 +20,7 @@
 .player {
     background-color: aqua;
 }
+.ball  {
+    background-color: red;
+    border-radius:50%;
+}
